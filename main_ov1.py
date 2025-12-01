@@ -330,7 +330,8 @@ def main(args):
     # ncount = args.batch_size * args.nstreams * args.loop
     ncount = args.nstreams * args.loop
     images = prepare_images(args.input, ncount)
-    
+    process = psutil.Process(os.getpid())        
+
     transform = build_transform(args)
     # print("Transform = ")
     # if isinstance(transform, tuple):
@@ -343,61 +344,61 @@ def main(args):
     #         print(t)
     # print("---------------------------")
     
-    model = load_torch_model(model_name, checkpoint)
-    output_torch_False = inference_torch("Torch_FP32", images, model, transform, args.batch_size, args.warmup, args.loop, False)
-    output_torch_True = inference_torch("Torch_BF16", images, model, transform, args.batch_size, args.warmup, args.loop, True)
+    # model = load_torch_model(model_name, checkpoint)
+    # output_torch_False = inference_torch("Torch_FP32", images, model, transform, args.batch_size, args.warmup, args.loop, False)
+    # output_torch_True = inference_torch("Torch_BF16", images, model, transform, args.batch_size, args.warmup, args.loop, True)
 
-    allclose_False = np.allclose(output_torch_False, output_torch_True, rtol=rtol, atol=atol)
-    diff_False = np.abs(output_torch_False - output_torch_True)
-    print(f"Torch, 近似相等:{allclose_False}, max差异:{np.max(diff_False):.4f}, mean差异:{np.mean(diff_False):.4f}")
+    # allclose_False = np.allclose(output_torch_False, output_torch_True, rtol=rtol, atol=atol)
+    # diff_False = np.abs(output_torch_False - output_torch_True)
+    # print(f"Torch, 近似相等:{allclose_False}, max差异:{np.max(diff_False):.4f}, mean差异:{np.mean(diff_False):.4f}")
 
     ov_path = Path(checkpoint).with_suffix('.xml')
+    # mode_name = ['F32', 'BF16', 'F16']
+    # for i,name in enumerate(mode_name):            
+    #     ov_model, infer_queue = load_ov_model(ov_path, args.nstreams, args.batch_size, amx=i)
+
+    #     output_ov = inference_ov(f"OV_sync_{name}", images, ov_model, args.batch_size, args.warmup, args.loop)
+    #     allclose_False = np.allclose(output_torch_False, output_ov, rtol=rtol, atol=atol)
+    #     diff_False = np.abs(output_torch_False - output_ov)
+    #     print(f"{name}, 近似相等_F32:{allclose_False}, max差异:{np.max(diff_False):.4f}, mean差异:{np.mean(diff_False):.4f}")
+    #     allclose_True = np.allclose(output_torch_True, output_ov, rtol=rtol, atol=atol)
+    #     diff_True = np.abs(output_torch_True - output_ov)
+    #     print(f"{name}, 近似相等_BF16:{allclose_True}, max差异:{np.max(diff_True):.4f}, mean差异:{np.mean(diff_True):.4f}")
+
+    #     output_ov = inference_ov_async(f"OV_async_{name}", images, infer_queue, args.batch_size, args.warmup, args.loop)
+    #     allclose_False = np.allclose(output_torch_False, output_ov, rtol=rtol, atol=atol)
+    #     diff_False = np.abs(output_torch_False - output_ov)
+    #     print(f"{name}, 近似相等_F32:{allclose_False}, max差异:{np.max(diff_False):.4f}, mean差异:{np.mean(diff_False):.4f}")
+    #     allclose_True = np.allclose(output_torch_True, output_ov, rtol=rtol, atol=atol)
+    #     diff_True = np.abs(output_torch_True - output_ov)
+    #     print(f"{name}, 近似相等_BF16:{allclose_True}, max差异:{np.max(diff_True):.4f}, mean差异:{np.mean(diff_True):.4f}")
+
+    #     process = psutil.Process(os.getpid())        
+    #     mem_info = process.memory_info()
+    #     print(f"RSS: {mem_info.rss / 1024 ** 3:.2f} GB")  # 常驻内存
+    #     print(f"VMS: {mem_info.vms / 1024 ** 3:.2f} GB")  # 虚拟内存
+    #     del ov_model
+
     mode_name = ['F32', 'BF16', 'F16']
-    for i,name in enumerate(mode_name):            
-        ov_model, infer_queue = load_ov_model(ov_path, args.nstreams, args.batch_size, amx=i)
-
-        output_ov = inference_ov(f"OV_sync_{name}", images, ov_model, args.batch_size, args.warmup, args.loop)
-        allclose_False = np.allclose(output_torch_False, output_ov, rtol=rtol, atol=atol)
-        diff_False = np.abs(output_torch_False - output_ov)
-        print(f"{name}, 近似相等_F32:{allclose_False}, max差异:{np.max(diff_False):.4f}, mean差异:{np.mean(diff_False):.4f}")
-        allclose_True = np.allclose(output_torch_True, output_ov, rtol=rtol, atol=atol)
-        diff_True = np.abs(output_torch_True - output_ov)
-        print(f"{name}, 近似相等_BF16:{allclose_True}, max差异:{np.max(diff_True):.4f}, mean差异:{np.mean(diff_True):.4f}")
-
-        output_ov = inference_ov_async(f"OV_async_{name}", images, infer_queue, args.batch_size, args.warmup, args.loop)
-        allclose_False = np.allclose(output_torch_False, output_ov, rtol=rtol, atol=atol)
-        diff_False = np.abs(output_torch_False - output_ov)
-        print(f"{name}, 近似相等_F32:{allclose_False}, max差异:{np.max(diff_False):.4f}, mean差异:{np.mean(diff_False):.4f}")
-        allclose_True = np.allclose(output_torch_True, output_ov, rtol=rtol, atol=atol)
-        diff_True = np.abs(output_torch_True - output_ov)
-        print(f"{name}, 近似相等_BF16:{allclose_True}, max差异:{np.max(diff_True):.4f}, mean差异:{np.mean(diff_True):.4f}")
-
-        process = psutil.Process(os.getpid())        
-        mem_info = process.memory_info()
-        print(f"RSS: {mem_info.rss / 1024 ** 3:.2f} GB")  # 常驻内存
-        print(f"VMS: {mem_info.vms / 1024 ** 3:.2f} GB")  # 虚拟内存
-        del ov_model
-
-    mode_name = ['F32', 'BF16', 'F16']
+    mode_name = ['BF16']
     for i,name in enumerate(mode_name):            
         ov_model, infer_queue = load_ov_model1(ov_path, args.nstreams, args.batch_size, amx=i)
         output_ov = inference_ov1(f"OV1_sync_{name}", images, ov_model, transform, args.batch_size, args.warmup, args.loop)
-        allclose_False = np.allclose(output_torch_False, output_ov, rtol=rtol, atol=atol)
-        diff_False = np.abs(output_torch_False - output_ov)
-        print(f"{name}, 近似相等_F32:{allclose_False}, max差异:{np.max(diff_False):.4f}, mean差异:{np.mean(diff_False):.4f}")
-        allclose_True = np.allclose(output_torch_True, output_ov, rtol=rtol, atol=atol)
-        diff_True = np.abs(output_torch_True - output_ov)
-        print(f"{name}, 近似相等_BF16:{allclose_True}, max差异:{np.max(diff_True):.4f}, mean差异:{np.mean(diff_True):.4f}")
+        # allclose_False = np.allclose(output_torch_False, output_ov, rtol=rtol, atol=atol)
+        # diff_False = np.abs(output_torch_False - output_ov)
+        # print(f"{name}, 近似相等_F32:{allclose_False}, max差异:{np.max(diff_False):.4f}, mean差异:{np.mean(diff_False):.4f}")
+        # allclose_True = np.allclose(output_torch_True, output_ov, rtol=rtol, atol=atol)
+        # diff_True = np.abs(output_torch_True - output_ov)
+        # print(f"{name}, 近似相等_BF16:{allclose_True}, max差异:{np.max(diff_True):.4f}, mean差异:{np.mean(diff_True):.4f}")
 
-        output_ov = inference_ov_async1(f"OV1_async_{name}", images, infer_queue, transform, args.batch_size, args.warmup, args.loop)
-        allclose_False = np.allclose(output_torch_False, output_ov, rtol=rtol, atol=atol)
-        diff_False = np.abs(output_torch_False - output_ov)
-        print(f"{name}, 近似相等_F32:{allclose_False}, max差异:{np.max(diff_False):.4f}, mean差异:{np.mean(diff_False):.4f}")
-        allclose_True = np.allclose(output_torch_True, output_ov, rtol=rtol, atol=atol)
-        diff_True = np.abs(output_torch_True - output_ov)
-        print(f"{name}, 近似相等_BF16:{allclose_True}, max差异:{np.max(diff_True):.4f}, mean差异:{np.mean(diff_True):.4f}")
+        # output_ov = inference_ov_async1(f"OV1_async_{name}", images, infer_queue, transform, args.batch_size, args.warmup, args.loop)
+        # allclose_False = np.allclose(output_torch_False, output_ov, rtol=rtol, atol=atol)
+        # diff_False = np.abs(output_torch_False - output_ov)
+        # print(f"{name}, 近似相等_F32:{allclose_False}, max差异:{np.max(diff_False):.4f}, mean差异:{np.mean(diff_False):.4f}")
+        # allclose_True = np.allclose(output_torch_True, output_ov, rtol=rtol, atol=atol)
+        # diff_True = np.abs(output_torch_True - output_ov)
+        # print(f"{name}, 近似相等_BF16:{allclose_True}, max差异:{np.max(diff_True):.4f}, mean差异:{np.mean(diff_True):.4f}")
 
-        process = psutil.Process(os.getpid())        
         mem_info = process.memory_info()
         print(f"RSS: {mem_info.rss / 1024 ** 3:.2f} GB")  # 常驻内存
         print(f"VMS: {mem_info.vms / 1024 ** 3:.2f} GB")  # 虚拟内存
